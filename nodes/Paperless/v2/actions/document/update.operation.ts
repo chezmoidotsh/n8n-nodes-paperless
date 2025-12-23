@@ -86,6 +86,14 @@ export const description: INodeProperties[] = [
 		placeholder: 'Add Field',
 		options: [
 			{
+				displayName: 'Append Tags',
+				name: 'append_tags',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to append the new tags to the existing ones instead of replacing them',
+			},
+			{
 				displayName: 'Archive Serial Number',
 				name: 'archive_serial_number',
 				default: '',
@@ -339,6 +347,14 @@ export async function execute(
 
 	const updateFields = this.getNodeParameter('update_fields', itemIndex, {}) as any;
 
+	let tags = updateFields.tags?.values.map((tag: any) => Number(tag.tag.value));
+
+	if (updateFields.append_tags && tags && tags.length > 0) {
+		const currentDocument = (await apiRequest.call(this, itemIndex, 'GET', endpoint)) as any;
+		const currentTags = (currentDocument.tags || []).map((t: any) => Number(t));
+		tags = [...new Set([...currentTags, ...tags])];
+	}
+
 	const body = {
 		archive_serial_number: updateFields.archive_serial_number,
 		correspondent: updateFields.correspondent?.value,
@@ -349,7 +365,7 @@ export async function execute(
 		})),
 		document_type: updateFields.document_type?.value,
 		storage_path: updateFields.storage_path?.value,
-		tags: updateFields.tags?.values.map((tag: any) => tag.tag.value),
+		tags,
 		title: updateFields.title,
 	};
 
